@@ -11,11 +11,14 @@ markup syntaxes to HTML; currently there is support for:
     * reStructuredText, which requires docutils from http://docutils.sf.net/
 """
 
+import re
 from django import template
 from django.conf import settings
 from django.utils.encoding import smart_str, force_unicode
 from django.utils.safestring import mark_safe
+from django.utils.text import smart_split
 
+RE_KWARG = re.compile('(\w+)=(.+)')
 register = template.Library()
 
 @register.filter(is_safe=True)
@@ -71,14 +74,28 @@ def markdown(value, arg=''):
                     force_unicode(value), extensions, safe_mode=False))
 
 @register.filter(is_safe=True)
-def restructuredtext(value):
+def restructuredtext(value, options=None):
     try:
         from docutils.core import publish_parts
     except ImportError:
         if settings.DEBUG:
-            raise template.TemplateSyntaxError("Error in 'restructuredtext' filter: The Python docutils library isn't installed.")
+            raise template.TemplateSyntaxError("Error in 'restructuredtext' "
+                "filter: The Python docutils library isn't installed.")
         return force_unicode(value)
-    else:
-        docutils_settings = getattr(settings, "RESTRUCTUREDTEXT_FILTER_SETTINGS", {})
-        parts = publish_parts(source=smart_str(value), writer_name="html4css1", settings_overrides=docutils_settings)
-        return mark_safe(force_unicode(parts["fragment"]))
+    docutils_settings = getattr(settings, "RESTRUCTUREDTEXT_FILTER_SETTINGS",
+        {'file_insertion_enabled': False})
+    if options:
+        for option in smart_split(options):
+            match = RE_KWARG.match(option)
+            if not match:
+                return force_unicode(value)
+            key, option_value = match.groups()
+            if key == 'file_insertion_enabled':
+                # Disallow file insertion by filter option.
+                continue
+            option_value = {'True': True, 'False': False}.get(option_value,
+                option_value)
+            docutils_settings[smart_str(key)] = option_value
+    parts = publish_parts(source=smart_str(value), writer_name="html4css1",
+        settings_overrides=docutils_settings)
+    return mark_safe(force_unicode(parts["fragment"]))

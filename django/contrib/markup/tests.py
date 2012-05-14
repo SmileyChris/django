@@ -1,5 +1,6 @@
 # Quick tests for the markup templatetags (django.contrib.markup)
 import re
+import warnings
 
 from django.template import Template, Context
 from django.utils import unittest
@@ -31,7 +32,10 @@ Paragraph 2 with "quotes" and @code@"""
 
 ## An h2"""
 
-    rest_content = """Paragraph 1
+    rest_content = """Heading
+=======
+
+Paragraph 1
 
 Paragraph 2 with a link_
 
@@ -91,6 +95,49 @@ Paragraph 2 with a link_
             # Docutils from SVN (which will become 0.5)
             self.assertEqual(rendered, """<p>Paragraph 1</p>
 <p>Paragraph 2 with a <a class="reference external" href="http://www.example.com/">link</a></p>""")
+
+    @unittest.skipUnless(docutils, 'docutils not installed')
+    def test_docutils_options(self):
+        t = Template("{% load markup %}"
+            "{{ rest_content|restructuredtext:'initial_header_level=2 doctitle_xform=False' }}")
+        rendered = t.render(Context({'rest_content': self.rest_content}))\
+            .strip()
+        # Different versions of docutils return slightly different HTML
+        try:
+            # Docutils v0.4 and earlier
+            self.assertEqual(rendered, """<div class="section" id="heading">
+<h2>Heading</h2>
+<p>Paragraph 1</p>
+<p>Paragraph 2 with a <a class="reference" href="http://www.example.com/">link</a></p>
+</div>""")
+        except AssertionError:
+            # Docutils from SVN (which will become 0.5)
+            self.assertEqual(rendered, """<div class="section" id="heading">
+<h2>Heading</h2>
+<p>Paragraph 1</p>
+<p>Paragraph 2 with a <a class="reference external" href="http://www.example.com/">link</a></p>
+</div>""")
+
+    @unittest.skipUnless(docutils, 'docutils not installed')
+    def test_docutils_file_insertion(self):
+        t = Template("{% load markup %}{{ rest_content"
+            "|restructuredtext:'file_insertion_enabled=True report_level=3' }}")
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            warnings.warn('test')
+            rendered = t.render(Context({'rest_content':
+                ".. include:: setup.py\n    :literal:"})).strip()
+        self.assertEqual(rendered, '')
+
+    @unittest.skipUnless(docutils, 'docutils not installed')
+    def test_docutils_raw(self):
+        t = Template("{% load markup %}"
+            "{{ rest_content|restructuredtext:'report_level=3' }}")
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            rendered = t.render(Context({'rest_content':
+                ".. raw:: html\n   :file: setup.py"})).strip()
+        self.assertEqual(rendered, '')
 
     @unittest.skipIf(docutils, 'docutils is installed')
     def test_no_docutils(self):
