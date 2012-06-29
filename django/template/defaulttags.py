@@ -433,6 +433,18 @@ class VerbatimNode(Node):
     def render(self, context):
         return self.content
 
+class WhitespaceControlNode(Node):
+    """Implements the actions of the whitespace tag."""
+    def __init__(self, setting, nodelist):
+        self.setting, self.nodelist = setting, nodelist
+
+    def render(self, context):
+        old_setting = context.whitespace
+        context.whitespace = self.setting
+        output = self.nodelist.render(context)
+        context.whitespace = old_setting
+        return output
+
 class WidthRatioNode(Node):
     def __init__(self, val_expr, max_expr, max_width):
         self.val_expr = val_expr
@@ -1301,6 +1313,23 @@ def verbatim(parser, token):
     nodelist = parser.parse(('endverbatim',))
     parser.delete_first_token()
     return VerbatimNode(nodelist.render(Context()))
+
+@register.tag
+def whitespace(parser, token):
+    """
+    Control template token whitespace rendering for this block.
+    """
+    args = token.contents.split()
+    if len(args) != 2:
+        raise TemplateSyntaxError("'whitespace' tag requires exactly one "
+            "argument.")
+    arg = args[1]
+    if arg not in ('on', 'off'):
+        raise TemplateSyntaxError("'whitespace' argument should be 'on' or "
+            "'off'")
+    nodelist = parser.parse(('endwhitespace',))
+    parser.delete_first_token()
+    return WhitespaceControlNode((arg == 'on'), nodelist)
 
 @register.tag
 def widthratio(parser, token):

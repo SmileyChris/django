@@ -55,7 +55,7 @@ UNKNOWN_SOURCE = '<unknown source>'
 
 # match a variable or block tag and capture the entire tag, including start/end
 # delimiters
-tag_re = (re.compile('(%s.*?%s|%s.*?%s|%s.*?%s)' %
+tag_re = (re.compile(r'(\n\r?[\t ]*)?(%s.*?%s|%s.*?%s|%s.*?%s)' %
           (re.escape(BLOCK_TAG_START), re.escape(BLOCK_TAG_END),
            re.escape(VARIABLE_TAG_START), re.escape(VARIABLE_TAG_END),
            re.escape(COMMENT_TAG_START), re.escape(COMMENT_TAG_END))))
@@ -190,12 +190,28 @@ class Lexer(object):
         """
         Return a list of tokens from a given template_string.
         """
-        in_tag = False
         result = []
-        for bit in tag_re.split(self.template_string):
-            if bit:
-                result.append(self.create_token(bit, in_tag))
-            in_tag = not in_tag
+        tokens = tag_re.split(self.template_string)
+        max_i = len(tokens) - 1
+        i = 0
+        while i < max_i:
+            text, whitespace, tag = tokens[i:i + 3]
+            tag_token = self.create_token(tag, in_tag=True)
+            if tag_token.token_type in (TOKEN_VAR, TOKEN_TEXT):
+                if whitespace:
+                    text = text + whitespace
+                    whitespace = None
+            if text:
+                result.append(self.create_token(text, in_tag=False))
+            if whitespace:
+                token = self.create_token(whitespace, in_tag=False)
+                token.whitespace = True
+                result.append(token)
+            result.append(tag_token)
+            i += 3
+        text = tokens[max_i]
+        if text:
+            result.append(self.create_token(text, in_tag=False))
         return result
 
     def create_token(self, token_string, in_tag):
@@ -226,6 +242,7 @@ class Lexer(object):
                 token = Token(TOKEN_COMMENT, content)
         else:
             token = Token(TOKEN_TEXT, token_string)
+            token.whitespace = False
         token.lineno = self.lineno
         self.lineno += token_string.count('\n')
         return token
@@ -246,7 +263,8 @@ class Parser(object):
             token = self.next_token()
             # Use the raw values here for TOKEN_* for a tiny performance boost.
             if token.token_type == 0: # TOKEN_TEXT
-                self.extend_nodelist(nodelist, TextNode(token.contents), token)
+                cls = WhitespaceTextNode if token.whitespace else TextNode
+                self.extend_nodelist(nodelist, cls(token.contents), token)
             elif token.token_type == 1: # TOKEN_VAR
                 if not token.contents:
                     self.empty_variable(token)
@@ -853,6 +871,17 @@ class TextNode(Node):
 
     def render(self, context):
         return self.s
+
+class WhitespaceTextNode(TextNode):
+    """
+    The different class name allows for filtering out whitespace text nodes
+    when rendering, if required.
+    """
+
+    def render(self, context):
+        if context.whitespace:
+            return super(WhitespaceTextNode, self).render(context)
+        return ''
 
 def _render_value_in_context(value, context):
     """

@@ -87,11 +87,12 @@ class BaseContext(object):
 class Context(BaseContext):
     "A stack container for variable context"
     def __init__(self, dict_=None, autoescape=True, current_app=None,
-            use_l10n=None, use_tz=None):
+            use_l10n=None, use_tz=None, whitespace=True):
         self.autoescape = autoescape
         self.current_app = current_app
         self.use_l10n = use_l10n
         self.use_tz = use_tz
+        self.whitespace = whitespace
         self.render_context = RenderContext()
         super(Context, self).__init__(dict_)
 
