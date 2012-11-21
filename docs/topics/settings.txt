@@ -261,3 +261,36 @@ It boils down to this: Use exactly one of either ``configure()`` or
 
 .. _@login_required: ../authentication/#the-login-required-decorator
 
+.. _custom-app-settings::
+
+Custom settings for your app
+============================
+
+If you have custom settings in your app that you would like to be easily
+overridable in project settings, you can use the ``AppSettings`` class.
+
+Create a ``conf.py`` module within your app, containing something like this::
+
+    from django.conf import AppSettings
+    
+    
+    class Settings(AppSettings):
+        WIDGETS_PER_PAGE = 10
+        
+
+    settings = Settings()
+    
+From within your app code, you can use this as a drop-in replacement for the
+standard project-level settings module. You'll have access to all settings
+defined in your project-level module, with the addition any custom setting
+defaults you provided. For example::
+
+    from django.views.generic import List
+
+    from myapp import models
+    from myapp.conf import settings
+    
+    
+    class WidgetList(List):
+        model = models.Widget
+        paginate_by = settings.WIDGETS_PER_PAGE

@@ -1,7 +1,7 @@
 import os
 import warnings
 
-from django.conf import settings, global_settings
+from django.conf import settings, global_settings, AppSettings
 from django.core.exceptions import ImproperlyConfigured
 from django.http import HttpRequest
 from django.test import TransactionTestCase, TestCase, signals
@@ -282,6 +282,7 @@ class SecureProxySslHeaderTest(TestCase):
         req.META['HTTP_X_FORWARDED_PROTOCOL'] = 'https'
         self.assertEqual(req.is_secure(), True)
 
+
 class EnvironmentVariableTest(TestCase):
     """
     Ensures proper settings file is used in setup_environ if
@@ -310,7 +311,7 @@ class EnvironmentVariableTest(TestCase):
         from django.core.management import setup_environ
 
         # whatever was already there
-        original_module =  os.environ.get(
+        original_module = os.environ.get(
             'DJANGO_SETTINGS_MODULE',
             'the default'
         )
@@ -339,9 +340,41 @@ class EnvironmentVariableTest(TestCase):
 
         # pass in original_settings_path (should take precedence)
         os.environ['DJANGO_SETTINGS_MODULE'] = user_override
-        setup_environ(global_settings, original_settings_path = orig_path)
+        setup_environ(global_settings, original_settings_path=orig_path)
 
         self.assertEqual(
             os.environ.get('DJANGO_SETTINGS_MODULE'),
             orig_path
         )
+
+
+class AppSettingsTest(TestCase):
+
+    def setUp(self):
+
+        class ExampleAppSettings(AppSettings):
+            CUSTOM_SETTING = 1
+            DEBUG = not settings.DEBUG
+
+        self.app_settings = ExampleAppSettings()
+
+    def test_custom(self):
+        """
+        Settings not found in the project settings
+        """
+        self.assertEqual(self.app_settings.CUSTOM_SETTING, 1)
+
+    def test_unknown(self):
+        """
+        Unknown settings raise an AttributeError, just like the standard
+        project settings do.
+        """
+        self.assertRaises(AttributeError,
+                          lambda: self.app_settings.UNKNOWN_SETTING)
+
+    def test_project_overridden(self):
+        """
+        Even though the setting is set in the AppSettings class, it tries to
+        get it first from the project settings.
+        """
+        self.assertEqual(self.app_settings.DEBUG, settings.DEBUG)

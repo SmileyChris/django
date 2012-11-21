@@ -194,8 +194,44 @@ class UserSettingsHolder(BaseSettings):
     def __dir__(self):
         return list(self.__dict__) + dir(self.default_settings)
 
+
 settings = LazySettings()
 
+
+class AppSettings(object):
+    """
+    A holder for app-specific Django settings. The settings specified in this
+    class (as uppercase attributes) can be overridden in the project's settings
+    module.
+
+    The standard usage is to create a ``conf`` module within your app
+    containing an instance of a subclass of ``AppSettings``. For example::
+
+        from django.conf import AppSettings
+
+
+        class Settings(AppSettings):
+            MYAPP_WIDGETS = ('foo', 'bar')
+
+
+        settings = Settings()
+
+    Then within the app, use ``from myapp.conf import settings`` to have
+    access to both the project-level settings and the defaults provided in
+    the app's settings module.
+    """
+
+    def __getattribute__(self, attr):
+        """
+        If the attribute is uppercase, try to get it first from the project
+        settings.
+        """
+        if attr == attr.upper():
+            try:
+                return getattr(settings, attr)
+            except AttributeError:
+                pass
+        return super(AppSettings, self).__getattribute__(attr)
 
 
 def compat_patch_logging_config(logging_config):
