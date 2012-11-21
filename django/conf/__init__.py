@@ -219,18 +219,38 @@ class AppSettings(object):
     Then within the app, use ``from myapp.conf import settings`` to have
     access to both the project-level settings and the defaults provided in
     the app's settings module.
+
+    Set :attr:`merge_dicts` to ``True`` to have dictionary settings to be
+    overridable per key/value.
     """
+    merge_dicts = False
 
     def __getattribute__(self, attr):
         """
         If the attribute is uppercase, try to get it first from the project
         settings.
+
+        If the attribute is a dictionary in both project settings and the app
+        settings, and :attr:`merge_dicts` is ``True``, combine them.
         """
         if attr == attr.upper():
             try:
-                return getattr(settings, attr)
+                value = getattr(settings, attr)
             except AttributeError:
                 pass
+            else:
+                if not self.merge_dicts or not isinstance(value, dict):
+                    return value
+                try:
+                    default_value = super(AppSettings, self)\
+                        .__getattribute__(attr)
+                except AttributeError:
+                    return value
+                if not isinstance(default_value, dict):
+                    return value
+                new_value = default_value.copy()
+                new_value.update(value)
+                return new_value
         return super(AppSettings, self).__getattribute__(attr)
 
 

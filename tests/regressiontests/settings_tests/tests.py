@@ -355,6 +355,7 @@ class AppSettingsTest(TestCase):
         class ExampleAppSettings(AppSettings):
             CUSTOM_SETTING = 1
             DEBUG = not settings.DEBUG
+            EXAMPLE_APP_SETTINGS = {'START': 'A', 'END': 'Z'}
 
         self.app_settings = ExampleAppSettings()
 
@@ -378,3 +379,21 @@ class AppSettingsTest(TestCase):
         get it first from the project settings.
         """
         self.assertEqual(self.app_settings.DEBUG, settings.DEBUG)
+
+    @override_settings(EXAMPLE_APP_SETTINGS={'END': 'O'})
+    def test_no_merge_dicts(self):
+        """
+        By default, dictionaries are treated like any other attribute and
+        overridden entirely.
+        """
+        self.assertEqual(self.app_settings.EXAMPLE_APP_SETTINGS, {'END': 'O'})
+
+    @override_settings(EXAMPLE_APP_SETTINGS={'END': 'O'})
+    def test_merge_dicts(self):
+        """
+        When ``merge_dicts`` is set to ``True``, dictionary keys are
+        individually overridable.
+        """
+        self.app_settings.merge_dicts = True
+        self.assertEqual(
+            self.app_settings.EXAMPLE_APP_SETTINGS, {'START': 'A', 'END': 'O'})

@@ -294,3 +294,16 @@ defaults you provided. For example::
     class WidgetList(List):
         model = models.Widget
         paginate_by = settings.WIDGETS_PER_PAGE
+
+If you want to your setting dictionaries to have each individual key/value
+overridable, set ``merge_dicts = True``::
+
+    class Settings(AppSettings):
+        merge_dicts = True
+        MYAPP = {
+            'WIDGETS': ('foo', 'bar'),
+            'DEBUG': False,
+        }
+
+Then, setting ``MYAPP = {'DEBUG': True}`` in your project settings will mean
+you still have access to ``settings.MYAPP['WIDGETS']``.
