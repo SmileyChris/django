@@ -232,6 +232,44 @@ class PaginationTests(unittest.TestCase):
         self.assertEqual(page2.previous_page_number(), 1)
         self.assertIsNone(page2.next_page_number())
 
+    def test_page_padded_range(self):
+        """
+        Tests that a Page returns the correct padded range based on its
+        current page number.
+        """
+
+        def page_range(number, total, cap, padding):
+            """
+            Return a padded page range.
+            """
+            page = Paginator(range(total), per_page=1).page(number)
+            return page.padded_page_range(cap=cap, padding=padding)
+
+        self.assertEqual(
+            page_range(number=1, total=6, cap=1, padding=1),
+            [1, 2, None, 6])
+        self.assertEqual(
+            page_range(number=3, total=6, cap=1, padding=1),
+            [1, 2, 3, 4, None, 6])
+        self.assertEqual(
+            page_range(number=5, total=6, cap=1, padding=1),
+            [1, None, 4, 5, 6])
+        self.assertEqual(
+            page_range(number=2, total=6, cap=1, padding=3),
+            [1, 2, 3, 4, 5, 6])
+        self.assertEqual(
+            page_range(number=4, total=6, cap=0, padding=1),
+            [3, 4, 5])
+        self.assertEqual(
+            page_range(number=2, total=6, cap=10, padding=10),
+            [1, 2, 3, 4, 5, 6])
+        self.assertEqual(
+            page_range(number=5, total=10, cap=2, padding=1),
+            [1, 2, None, 4, 5, 6, None, 9, 10])
+        self.assertEqual(
+            page_range(number=3, total=10, cap=1, padding=5),
+            [1, 2, 3, 4, 5, 6, 7, 8, None, 10])
+
 
 class ModelPaginationTests(TestCase):
     """
