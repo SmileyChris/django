@@ -365,3 +365,27 @@ This example is equivalent to::
         my_objects = list(MyModel.objects.filter(published=True))
         if not my_objects:
             raise Http404
+
+``get_form_kwargs``
+===================
+
+.. function:: get_form_kwargs(request)
+
+    Returns a dictionary that can be used for keyword argument expansion when
+    instanciating a Form.
+
+    If the request is a POST or PUT, the dictionary will be::
+
+        {'data': request.POST, 'files': request.FILES}
+
+    Otherwise it will simply be an empty dictionary.
+
+    This can be useful to avoid needing two logical instanciations of the same
+    form in a view. For example::
+
+        def my_view(request):
+            form = forms.MyForm(**shortcuts.get_form_kwargs(request))
+            if form.is_valid():
+                form.save()
+                return shortcuts.redirect(my_view)
+            return shortcuts.render(request, 'my.html', {'form': form})

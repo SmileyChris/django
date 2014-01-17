@@ -160,3 +160,22 @@ def resolve_url(to, *args, **kwargs):
 
     # Finally, fall back and assume it's a URL
     return to
+
+
+def get_form_kwargs(request):
+    """
+    Return a dictionary that can be used for keyword argument expansion when
+    instanciating a Form.
+
+    If the request is a POST or PUT, the dictionary will be::
+
+        {'data': request.POST, 'files': request.FILES}
+
+    Otherwise it will simply be an empty dictionary.
+    """
+    if request.method in ('POST', 'PUT'):
+        return {
+            'data': request.POST,
+            'files': request.FILES,
+        }
+    return {}
