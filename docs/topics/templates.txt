@@ -617,6 +617,43 @@ they're beyond the control of the template author.
 
 .. _template-accessing-methods:
 
+Whitespace handling
+===================
+
+When dealing with HTML templates extra whitespace is not normally a concern,
+but when using space-sensitive formats (such as in CSV and text emails) you
+can explicitly trim the newlines and whitespace around tags.
+
+To trim the following newline, place a minus sign (-) directly before closing
+the tag or variable. Similarily, trim the previous newline with a minus sign
+directly after opening the tag or variable.
+
+Using a minus sign on either side trims *both* the leading and trailing
+whitespace between the tag and a newline.
+
+For example, here is an email template and its rendered equivalent::
+
+    Hello {{ name }},
+
+      {%- if regular %}
+      Thank you for being a regular customer!
+      {% endif -%}
+
+      Here are your orders:
+      {% for order in orders -%}
+        * {{ order.url }}
+      {% endfor -%}
+
+::
+
+    Hello Sasha,
+
+      Thank you for being a regular customer!
+
+      Here are your orders:
+        * https://stuffon.sale/order-125/
+        * https://stuffon.sale/order-128/
+
 Accessing method calls
 ======================
 
