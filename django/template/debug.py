@@ -23,6 +23,7 @@ class DebugLexer(Lexer):
         last_bit = self.template_string[upto:]
         if last_bit:
             result.append(self.create_token(last_bit, (upto, upto + len(last_bit)), False))
+        self.trim(result)
         return result
 
     def create_token(self, token_string, source, in_tag):

@@ -165,6 +165,9 @@ def compile_string(template_string, origin):
 
 
 class Token(object):
+    trim_before = False
+    trim_after = False
+
     def __init__(self, token_type, contents):
         # token_type must be TOKEN_TEXT, TOKEN_VAR, TOKEN_BLOCK or
         # TOKEN_COMMENT.
@@ -209,6 +212,7 @@ class Lexer(object):
             if bit:
                 result.append(self.create_token(bit, in_tag))
             in_tag = not in_tag
+        self.trim(result)
         return result
 
     def create_token(self, token_string, in_tag):
@@ -217,31 +221,73 @@ class Lexer(object):
         If in_tag is True, we are processing something that matched a tag,
         otherwise it should be treated as a literal string.
         """
-        if in_tag and token_string.startswith(BLOCK_TAG_START):
+        if in_tag:
             # The [2:-2] ranges below strip off *_TAG_START and *_TAG_END.
             # We could do len(BLOCK_TAG_START) to be more "correct", but we've
             # hard-coded the 2s here for performance. And it's not like
             # the TAG_START values are going to change anytime, anyway.
-            block_content = token_string[2:-2].strip()
-            if self.verbatim and block_content == self.verbatim:
-                self.verbatim = False
+            content = token_string[2:-2]
+            trim_before = content[0] == '-'
+            if trim_before:
+                content = content[1:]
+            trim_after = content[-1] == '-'
+            if trim_after:
+                content = content[:-1]
+            content = content.strip()
+
+            start = token_string[:2]
+            if start == BLOCK_TAG_START:
+                if self.verbatim and content == self.verbatim:
+                    self.verbatim = False
         if in_tag and not self.verbatim:
-            if token_string.startswith(VARIABLE_TAG_START):
-                token = Token(TOKEN_VAR, token_string[2:-2].strip())
-            elif token_string.startswith(BLOCK_TAG_START):
-                if block_content[:9] in ('verbatim', 'verbatim '):
-                    self.verbatim = 'end%s' % block_content
-                token = Token(TOKEN_BLOCK, block_content)
-            elif token_string.startswith(COMMENT_TAG_START):
-                content = ''
-                if token_string.find(TRANSLATOR_COMMENT_MARK):
-                    content = token_string[2:-2].strip()
+            if start == VARIABLE_TAG_START:
+                token = Token(TOKEN_VAR, content)
+            elif start == BLOCK_TAG_START:
+                if content[:9] in ('verbatim', 'verbatim '):
+                    self.verbatim = 'end%s' % content
+                token = Token(TOKEN_BLOCK, content)
+            else:  # Comment tag
+                if not token_string.find(TRANSLATOR_COMMENT_MARK):
+                    content = ''
                 token = Token(TOKEN_COMMENT, content)
+            token.trim_before = trim_before
+            token.trim_after = trim_after
         else:
             token = Token(TOKEN_TEXT, token_string)
         token.lineno = self.lineno
         self.lineno += token_string.count('\n')
         return token
+
+    def trim(self, tokens):
+        trim_start = trim_end = False
+        count = len(tokens)
+        for i, token in enumerate(tokens):
+            if not token.trim_before and not token.trim_after:
+                continue
+            if i > 0:
+                previous_token = tokens[i-1]
+                if previous_token.token_type == TOKEN_TEXT:
+                    contents = previous_token.contents
+                    newline = contents.rfind('\n')
+                    if newline == -1:
+                        newline = 0
+                    elif not token.trim_before:
+                        # Don't trim the prior newline, just trim whitespace.
+                        newline += 1
+                    if not contents[newline:].rstrip():
+                        previous_token.contents = contents[:newline]
+            if i < count - 1:
+                next_token = tokens[i+1]
+                if next_token.token_type == TOKEN_TEXT:
+                    contents = next_token.contents
+                    newline = contents.find('\n')
+                    if newline == -1:
+                        newline = len(contents)
+                    if token.trim_after:
+                        # Trim the next newline in addition to whitespace.
+                        newline += 1
+                    if not contents[:newline].lstrip():
+                        next_token.contents = contents[newline:]
 
 
 class Parser(object):
