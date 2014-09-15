@@ -144,6 +144,10 @@ class TemplateResponse(SimpleTemplateResponse):
         self._request = request
         # As a convenience we'll allow callers to provide current_app without
         # having to avoid needing to create the RequestContext directly
+        if not current_app:
+            resolver_match = getattr(request, 'resolver_match', None)
+            if resolver_match:
+                current_app = resolver_match.namespace
         self._current_app = current_app
         super(TemplateResponse, self).__init__(
             template, context, content_type, status, charset)

@@ -40,7 +40,14 @@ def render(request, *args, **kwargs):
             raise ValueError('If you provide a context_instance you must '
                              'set its current_app before calling render()')
     else:
-        current_app = kwargs.pop('current_app', None)
+        if 'current_app' in kwargs:
+            # Note that this allows for passing current_app=None to avoid using
+            # the current_app from the request.
+            current_app = kwargs.pop('current_app')
+        else:
+            resolver_match = getattr(request, 'resolver_match', None)
+            if resolver_match:
+                current_app = resolver_match.namespace
         context_instance = RequestContext(request, current_app=current_app)
 
     kwargs['context_instance'] = context_instance
