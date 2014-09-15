@@ -331,6 +331,19 @@ class Apps(object):
         """
         self.get_models.cache_clear()
 
+    def urls(self, app_label):
+        """
+        Rteurns a tuple suitable for Django's URL router that provides the
+        app's URL configuration and application namespace.
+
+        url('^polls/', include(apps.urls('polls')))
+        """
+        urlconf = self.get_app_config(app_label).urlconf
+        if not urlconf:
+            raise ImproperlyConfigured(
+                "{} has no application URLconf defined".format(app_label))
+        return (urlconf, app_label)
+
     ### DEPRECATED METHODS GO BELOW THIS LINE ###
 
     def load_app(self, app_name):

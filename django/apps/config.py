@@ -40,6 +40,9 @@ class AppConfig(object):
         if not hasattr(self, 'path'):
             self.path = self._path_from_module(app_module)
 
+        if not hasattr(self, 'urlconf'):
+            self.urlconf = None
+
         # Module containing models eg. <module 'django.contrib.admin.models'
         # from 'django/contrib/admin/models.pyc'>. Set by import_models().
         # None if the application doesn't have a models module.
