@@ -567,7 +567,7 @@ template (or templates) you would change it in ``polls/urls.py``::
     ...
 
 Namespacing URL names
-======================
+=====================
 
 The tutorial project has just one app, ``polls``. In real Django projects,
 there might be five, ten, twenty apps or more. How does Django differentiate
@@ -576,17 +576,33 @@ view, and so might an app on the same project that is for a blog. How does one
 make it so that Django knows which app view to create for a url when using the
 ``{% url %}`` template tag?
 
-The answer is to add namespaces to your root URLconf. In the ``mysite/urls.py``
-file, go ahead and change it to include namespacing:
+The answer is to use application URL namespaces. Let's set up an application
+configuration for the polls app:
+
+.. snippet::
+    :filename: polls/__init__.py
+    default_app_config = 'polls.apps.PollsConfig'
+
+.. snippet::
+    :filename: polls/apps.py
+    from django.apps import AppConfig
+
+    class PollsConfig(AppConfig):
+        name = 'polls'
+        urlconf = 'polls.urls'
+
+In the ``mysite/urls.py`` file, go ahead and change it to include the
+URL via Django's application registry instead:
 
 .. snippet::
     :filename: mysite/urls.py
 
     from django.conf.urls import include, url
     from django.contrib import admin
+    from django.apps import apps
 
     urlpatterns = [
-        url(r'^polls/', include('polls.urls', namespace="polls")),
+        url(r'^polls/', include(apps.urls('polls'))),
         url(r'^admin/', include(admin.site.urls)),
     ]
 
