@@ -16,15 +16,15 @@ handler404 = 'django.views.defaults.page_not_found'
 handler500 = 'django.views.defaults.server_error'
 
 
-def include(arg, namespace=None, app_name=None):
-    if isinstance(arg, tuple):
-        # callable returning a namespace hint
-        if namespace:
-            raise ImproperlyConfigured('Cannot override the namespace for a dynamic module that provides a namespace')
-        urlconf_module, app_name, namespace = arg
-    else:
-        # No namespace hint - use manually provided namespace
-        urlconf_module = arg
+def include(urlconf_module, namespace=None, app_name=None):
+    if isinstance(urlconf_module, tuple):
+        urlconf_module, app_name, new_namespace = urlconf_module + (None,)
+        if new_namespace:
+            if namespace:
+                raise ImproperlyConfigured(
+                    'Cannot override the namespace for a dynamic module that '
+                    'provides a namespace')
+            namespace = new_namespace
 
     if isinstance(urlconf_module, six.string_types):
         urlconf_module = import_module(urlconf_module)
