@@ -991,7 +991,7 @@ class NodeList(list):
     contains_nontext = False
 
     def render(self, context, no_output=False):
-        output = context.render_context['_output']
+        output = context.render_context.setdefault('_output', io.StringIO())
         nodes = self.rendered_nodes(context)
         if not no_output:
             start_pos = output.tell()
