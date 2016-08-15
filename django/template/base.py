@@ -996,7 +996,7 @@ class NodeList(list):
         if not no_output:
             start_pos = output.tell()
         for node in nodes:
-            output.write(node)
+            output.write(force_text(node))
         if no_output:
             return ''
         output.seek(start_pos)
