@@ -165,7 +165,7 @@ class ForNode(Node):
                 values = list(values)
             len_values = len(values)
             if len_values < 1:
-                return self.nodelist_empty.render(context)
+                return self.nodelist_empty.render(context, no_output=True)
             nodelist = []
             if self.is_reversed:
                 values = reversed(values)
@@ -254,9 +254,9 @@ class IfChangedNode(Node):
         if compare_to != state_frame[self]:
             state_frame[self] = compare_to
             # render true block if not already rendered
-            return nodelist_true_output or self.nodelist_true.render(context)
+            return nodelist_true_output or self.nodelist_true.render(context, no_output=True)
         elif self.nodelist_false:
-            return self.nodelist_false.render(context)
+            return self.nodelist_false.render(context, no_output=True)
         return ''
 
     def _get_context_stack_frame(self, context):
@@ -287,8 +287,8 @@ class IfEqualNode(Node):
         val1 = self.var1.resolve(context, True)
         val2 = self.var2.resolve(context, True)
         if (self.negate and val1 != val2) or (not self.negate and val1 == val2):
-            return self.nodelist_true.render(context)
-        return self.nodelist_false.render(context)
+            return self.nodelist_true.render(context, no_output=True)
+        return self.nodelist_false.render(context, no_output=True)
 
 
 class IfNode(Node):
@@ -320,7 +320,7 @@ class IfNode(Node):
                 match = True
 
             if match:
-                return nodelist.render(context)
+                return nodelist.render(context, no_output=True)
 
         return ''
 
@@ -515,7 +515,7 @@ class WithNode(Node):
         values = {key: val.resolve(context) for key, val in
                   six.iteritems(self.extra_context)}
         with context.push(**values):
-            return self.nodelist.render(context)
+            return self.nodelist.render(context, no_output=True)
 
 
 @register.tag

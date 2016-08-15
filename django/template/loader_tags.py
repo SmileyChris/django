@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import logging
 import posixpath
 from collections import defaultdict
@@ -58,7 +60,7 @@ class BlockNode(Node):
         with context.push():
             if block_context is None:
                 context['block'] = self
-                result = self.nodelist.render(context)
+                result = self.nodelist.render(context, no_output=True)
             else:
                 push = block = block_context.pop(self.name)
                 if block is None:
@@ -67,7 +69,7 @@ class BlockNode(Node):
                 block = type(self)(block.name, block.nodelist)
                 block.context = context
                 context['block'] = block
-                result = block.nodelist.render(context)
+                result = block.nodelist.render(context, no_output=True)
                 if push is not None:
                     block_context.push(self.name, push)
         return result
@@ -81,7 +83,7 @@ class BlockNode(Node):
         render_context = self.context.render_context
         if (BLOCK_CONTEXT_KEY in render_context and
                 render_context[BLOCK_CONTEXT_KEY].get_block(self.name) is not None):
-            return mark_safe(self.render(self.context))
+            return mark_safe(self.render(self.context, no_output=True))
         return ''
 
 
@@ -205,9 +207,9 @@ class IncludeNode(Node):
                 for name, var in six.iteritems(self.extra_context)
             }
             if self.isolated_context:
-                return template.render(context.new(values))
+                return template.render(context.new(values), no_output=True)
             with context.push(**values):
-                return template.render(context)
+                return template.render(context, no_output=True)
         except Exception:
             if context.template.engine.debug:
                 raise

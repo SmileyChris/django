@@ -189,7 +189,7 @@ class LanguageNode(Node):
 
     def render(self, context):
         with translation.override(self.language.resolve(context)):
-            output = self.nodelist.render(context)
+            output = self.nodelist.render(context, no_output=True)
         return output
 
 

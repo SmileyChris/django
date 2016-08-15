@@ -52,6 +52,7 @@ times with multiple contexts)
 from __future__ import unicode_literals
 
 import inspect
+import io
 import logging
 import re
 import warnings
@@ -196,18 +197,20 @@ class Template(object):
                 yield subnode
 
     def _render(self, context):
-        return self.nodelist.render(context)
+        return self.nodelist.render(context, no_output=True)
 
     def render(self, context):
         "Display stage -- can be called many times"
         context.render_context.push()
+        context.render_context['_output'] = output = io.StringIO()
         try:
             if context.template is None:
                 with context.bind_template(self):
                     context.template_name = self.name
-                    return self._render(context)
+                    self._render(context)
             else:
-                return self._render(context)
+                self._render(context)
+            return output.getvalue()
         finally:
             context.render_context.pop()
 
@@ -987,15 +990,27 @@ class NodeList(list):
     # extend_nodelist().
     contains_nontext = False
 
-    def render(self, context):
-        bits = []
+    def render(self, context, no_output=False):
+        output = context.render_context['_output']
+        nodes = self.rendered_nodes(context)
+        if not no_output:
+            start_pos = output.tell()
+        for node in nodes:
+            output.write(node)
+        if no_output:
+            return ''
+        output.seek(start_pos)
+        ret = mark_safe(output.read())
+        output.seek(start_pos)
+        output.truncate()
+        return ret
+
+    def rendered_nodes(self, context):
         for node in self:
             if isinstance(node, Node):
-                bit = node.render_annotated(context)
+                yield node.render_annotated(context)
             else:
-                bit = node
-            bits.append(force_text(bit))
-        return mark_safe(''.join(bits))
+                yield node
 
     def get_nodes_by_type(self, nodetype):
         "Return a list of all nodes of the given type"

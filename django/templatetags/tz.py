@@ -96,7 +96,7 @@ class LocalTimeNode(Node):
     def render(self, context):
         old_setting = context.use_tz
         context.use_tz = self.use_tz
-        output = self.nodelist.render(context)
+        output = self.nodelist.render(context, no_output=True)
         context.use_tz = old_setting
         return output
 
@@ -111,7 +111,7 @@ class TimezoneNode(Node):
 
     def render(self, context):
         with timezone.override(self.tz.resolve(context)):
-            output = self.nodelist.render(context)
+            output = self.nodelist.render(context, no_output=True)
         return output
 
 
