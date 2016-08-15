@@ -202,7 +202,7 @@ class Template(object):
     def render(self, context):
         "Display stage -- can be called many times"
         context.render_context.push()
-        context.render_context['_output'] = output = io.StringIO()
+        context.render_context['_nodelist_output'] = output = io.StringIO()
         try:
             if context.template is None:
                 with context.bind_template(self):
@@ -991,7 +991,7 @@ class NodeList(list):
     contains_nontext = False
 
     def render(self, context, no_output=False):
-        output = context.render_context.setdefault('_output', io.StringIO())
+        output = context.render_context.setdefault('_nodelist_output', io.StringIO())
         nodes = self.rendered_nodes(context)
         if not no_output:
             start_pos = output.tell()
