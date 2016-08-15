@@ -210,7 +210,7 @@ class Template(object):
                     self._render(context)
             else:
                 self._render(context)
-            return output.getvalue()
+            return mark_safe(output.getvalue())
         finally:
             context.render_context.pop()
 
